@@ -1,7 +1,10 @@
 package main
 
 import (
+    "fmt"
     "time"
+    "bytes"
+    "encoding/gob"
 )
 
 // Taken from:
@@ -26,3 +29,23 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
     return block
 }
 
+func (b *Block) Serialize() []byte {
+    var result bytes.Buffer
+    encoder := gob.NewEncoder(&result)
+
+    if err:= encoder.Encode(b); err != nil {
+        fmt.Println(err)
+    }
+
+    return result.Bytes()
+}
+
+func DeserializeBlock(d []byte) *Block {
+    var block Block
+
+    decoder := gob.NewDecoder(bytes.NewReader(d))
+    if err := decoder.Decode(&block); err != nil {
+        fmt.Println(err)
+    }
+    return &block
+}
