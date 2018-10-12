@@ -43,8 +43,8 @@ func(bc *Blockchain) AddBlock(data string) {
     }
 }
 
-func NewGenesisBlock() *Block {
-    return NewBlock("Genesis Block", []byte{})
+func NewGenesisBlock(coinbase *(Transaction) *Block {
+    return NewBlock([]*Transaction{coinbase}, []byte{})
 }
 
 func NewBlockchain() *Blockchain {
@@ -52,6 +52,9 @@ func NewBlockchain() *Blockchain {
     db, _ := bolt.Open(dbFile, 0600, nil)
 
     _ = db.Update(func(tx *bolt.Tx) error {
+        cbtx := NewCoinbaseTX(address, genesisCoinbaseData) //TODO
+        genesis := NewGenesisBlock(cbtx)
+
         b := tx.Bucket([]byte(blocksBucket))
 
         if b == nil {
