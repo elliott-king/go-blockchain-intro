@@ -1,5 +1,14 @@
-// Describes transaction upon the blockchain
+package main
 
+import (
+    "fmt"
+    "bytes"
+    "crypto/sha256"
+    "encoding/gob"
+    "log"
+)
+
+const subsidy = 10 // Arbitrary
 
 // Inputs reference outputs of a previous transaction
 type TXInput struct {
@@ -33,4 +42,19 @@ func NewCoinbaseTX(to, data string) *Transaction {
     tx.SetId()
 
     return &tx
+}
+
+// will soon be tx.Hash()
+func (t *Transaction) SetId() {
+    var encoded bytes.Buffer
+    var hash [32]byte
+
+    enc := gob.NewEncoder(&encoded)
+    err := enc.Encode(t)
+    if err != nil {
+        log.Panic(err)
+    }
+
+    hash = sha256.Sum256(encoded.Bytes())
+    t.ID = hash[:]
 }

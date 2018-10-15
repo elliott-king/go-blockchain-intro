@@ -3,10 +3,12 @@ package main
 import (
     "fmt"
     "github.com/boltdb/bolt"
+    "log"
 )
 
-const dbFile = "blockchain.db"
+const dbFile = "db/blockchain.db"
 const blocksBucket = "blocks"
+const genesisCoinbaseData = "Hello from sunny Louisville Kentucky"
 
 // In essences, blockchain is just a  db w/ ordered structure (each block linked to prev)
 type Blockchain struct {
@@ -19,7 +21,7 @@ type BlockchainIterator struct {
     db          *bolt.DB
 }
 
-func(bc *Blockchain) AddBlock(data string) {
+func(bc *Blockchain) AddBlock(transactions []*Transaction) {
     var lastHash []byte
     err := bc.db.View(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte(blocksBucket))
@@ -30,8 +32,8 @@ func(bc *Blockchain) AddBlock(data string) {
         fmt.Println(err)
     }
 
-    newBlock := NewBlock(data, lastHash)
-    
+    newBlock := NewBlock(transactions, lastHash)
+
     if err = bc.db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte(blocksBucket))
         _ = b.Put(newBlock.Hash, newBlock.Serialize())
@@ -43,35 +45,30 @@ func(bc *Blockchain) AddBlock(data string) {
     }
 }
 
-func NewGenesisBlock(coinbase *(Transaction) *Block {
-    return NewBlock([]*Transaction{coinbase}, []byte{})
-}
-
-func NewBlockchain() *Blockchain {
+// Creates new blockchain and genesis block
+func NewBlockchain(address string) *Blockchain {
     var tip []byte
-    db, _ := bolt.Open(dbFile, 0600, nil)
+    db, err := bolt.Open(dbFile, 0600, nil)
+    if err != nil {
+        log.Panic("Could not open db.\n", err)
+    }
+    fmt.Println("Got here first!")
 
-    _ = db.Update(func(tx *bolt.Tx) error {
+    if err := db.Update(func(tx *bolt.Tx) error {
+        fmt.Println("Got here!")
         cbtx := NewCoinbaseTX(address, genesisCoinbaseData) //TODO
         genesis := NewGenesisBlock(cbtx)
 
-        b := tx.Bucket([]byte(blocksBucket))
+        b, _ := tx.CreateBucket([]byte(blocksBucket))
+        _ = b.Put(genesis.Hash, genesis.Serialize())
+        _ = b.Put([]byte("1"), genesis.Hash)
 
-        if b == nil {
-            fmt.Println("No existing blockchain found. Creating a new one...")
-            genesis := NewGenesisBlock()
-            b, err := tx.CreateBucket([]byte(blocksBucket))
-            if err != nil {
-                fmt.Println(err)
-            }
-            _ = b.Put(genesis.Hash, genesis.Serialize())
-            _ = b.Put([]byte("1"), genesis.Hash)
-            tip = genesis.Hash
-        } else {
-            tip = b.Get([]byte("1"))
-        }
+        tip = genesis.Hash
         return nil
-    })
+    }); err != nil {
+        //fmt.Println("Error
+        log.Panic(err)
+    }
 
     bc := Blockchain{tip, db}
     return &bc
